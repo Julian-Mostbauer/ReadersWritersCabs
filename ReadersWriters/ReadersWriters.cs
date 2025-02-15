@@ -38,7 +38,7 @@ static class ReadersWriters
 
             UseDataRead(); // noncritical region
 
-            Thread.Sleep(random.Next(500, 2000)); // Simulate random pauses
+            Thread.Sleep(random.Next(50, 200)); // Simulate random pauses
         }
     }
 
@@ -52,55 +52,61 @@ static class ReadersWriters
             Interlocked.Increment(ref writerCount);
             db.Release(); // release exclusive access
 
-            Thread.Sleep(random.Next(1000, 3000)); // Simulate random pauses
+            Thread.Sleep(random.Next(100, 300)); // Simulate random pauses
         }
     }
 
     private static void ReadDatabase()
     {
         Console.WriteLine("Reading from database...");
-        Thread.Sleep(random.Next(300, 800)); // Simulate database reading
+        Thread.Sleep(random.Next(30, 80)); // Simulate database reading
     }
 
     private static void UseDataRead()
     {
         Console.WriteLine("Using read data...");
-        Thread.Sleep(random.Next(300, 800));
+        Thread.Sleep(random.Next(30, 80));
     }
 
     private static void ThinkUpData()
     {
         Console.WriteLine("Thinking up data...");
-        Thread.Sleep(random.Next(500, 1500));
+        Thread.Sleep(random.Next(50, 150));
     }
 
     private static void WriteDatabase()
     {
         Console.WriteLine("Writing to database...");
-        Thread.Sleep(random.Next(800, 1500)); // Simulate writing
+        Thread.Sleep(random.Next(80, 150)); // Simulate writing
     }
 
     public static void Example()
     {
+        const int numReaders = 20;
+        const int numWriters = 2;
+        const int totalTime = 3000;
+
         List<Thread> threads = new List<Thread>();
-        
-        for (int i = 0; i < 3; i++)
+
+        for (int i = 0; i < numReaders; i++)
         {
             Thread readerThread = new Thread(Reader);
             threads.Add(readerThread);
             readerThread.Start();
-            Thread.Sleep(random.Next(1000, 3000)); // Stagger reader starts
+            
+            // Stagger reader starts
+            Thread.Sleep(random.Next(totalTime / (3 * numReaders), totalTime / numReaders));
         }
 
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < numWriters; i++)
         {
             Thread writerThread = new Thread(Writer);
             threads.Add(writerThread);
             writerThread.Start();
-            Thread.Sleep(random.Next(3000, 5000)); // Stagger writer starts
+            Thread.Sleep(random.Next(totalTime / (3 * numWriters), totalTime / numWriters)); // Stagger writer starts
         }
-        
-        Thread.Sleep(15000); // Run for 15 seconds
+
+        Thread.Sleep(totalTime);
         running = false;
 
         foreach (var thread in threads)
@@ -110,5 +116,7 @@ static class ReadersWriters
 
         Console.WriteLine($"Readers executed: {readerCount}");
         Console.WriteLine($"Writers executed: {writerCount}");
+        Console.WriteLine($"Ratio: {readerCount / writerCount}");
+        Console.WriteLine($"Balanced Ratio: {numReaders / numWriters}");
     }
 }
