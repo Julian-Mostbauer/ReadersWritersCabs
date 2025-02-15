@@ -22,7 +22,46 @@ public static class ReadersWriters
     private const int writerPause = 300;
     private const int readerPause = 200;
 
-    public static void Reader()
+    private static void Reader()
+    {
+        while (running)
+        {
+            mutex.Wait(); // get exclusive access to rc
+            rc++;
+            if (rc == 1)
+                db.Wait(); // if this is the first reader ...
+            mutex.Release(); // release exclusive access to rc
+
+            ReadDatabase(); // access the data
+            Interlocked.Increment(ref readerCount);
+
+            mutex.Wait(); // get exclusive access to rc
+            rc--;
+            if (rc == 0)
+                db.Release(); // if this is the last reader ...
+            mutex.Release(); // release exclusive access to rc
+
+            UseDataRead(); // noncritical region
+
+            Thread.Sleep(random.Next((int)(readerPause * 0.8), (int)(readerPause * 1.2))); // Simulate random pauses
+        }
+    }
+
+    private static void Writer()
+    {
+        while (running)
+        {
+            ThinkUpData(); // noncritical region
+            db.Wait(); // get exclusive access
+            WriteDatabase(); // update the data
+            Interlocked.Increment(ref writerCount);
+            db.Release(); // release exclusive access
+
+            Thread.Sleep(random.Next((int)(writerPause * 0.8), (int)(writerPause * 1.2))); // Simulate random pauses
+        }
+    }
+
+    private static void BalancedReader()
     {
         while (running)
         {
@@ -49,7 +88,7 @@ public static class ReadersWriters
         }
     }
 
-    public static void Writer()
+    private static void BalancedWriter()
     {
         while (running)
         {
@@ -91,9 +130,9 @@ public static class ReadersWriters
 
     public static void Example()
     {
-        const int numReaders = 20;
+        const int numReaders = 200;
         const int numWriters = 2;
-        const int totalTime = 3000;
+        const int totalTime = 5000;
 
         var threads = new List<Thread>();
 
@@ -125,5 +164,6 @@ public static class ReadersWriters
         Console.WriteLine($"Writers executed: {writerCount}");
         Console.WriteLine($"Ratio: {(writerCount == 0 ? 0 : (double)readerCount / writerCount)}");
         Console.WriteLine($"Balanced Ratio: {(writerDelay * numReaders) / (readerDelay * numWriters)}");
+        Console.WriteLine($"Accesses per second: {(readerCount + writerCount) / (totalTime / 1000)}");
     }
 }
