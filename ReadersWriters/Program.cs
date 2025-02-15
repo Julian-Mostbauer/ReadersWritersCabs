@@ -5,6 +5,6 @@ static class Program
 
     public static void Main()
     {
-        Visualizer.Simulation01();
+        Visualization.VisualReadersWriters.Simulation();
     }
 }
