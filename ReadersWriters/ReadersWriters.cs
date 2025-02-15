@@ -138,7 +138,7 @@ public static class ReadersWriters
 
         for (int i = 0; i < numReaders; i++)
         {
-            Thread readerThread = new Thread(Reader);
+            var readerThread = new Thread(BalancedReader);
             threads.Add(readerThread);
             readerThread.Start();
             Thread.Sleep(random.Next(totalTime / (3 * numReaders), totalTime / numReaders)); // Stagger reader starts
@@ -146,7 +146,7 @@ public static class ReadersWriters
 
         for (int i = 0; i < numWriters; i++)
         {
-            Thread writerThread = new Thread(Writer);
+            var writerThread = new Thread(BalancedWriter);
             threads.Add(writerThread);
             writerThread.Start();
             Thread.Sleep(random.Next(totalTime / (3 * numWriters), totalTime / numWriters)); // Stagger writer starts
