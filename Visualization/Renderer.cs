@@ -1,12 +1,13 @@
 using Raylib_cs;
 using System.Numerics;
-
+using static Raylib_cs.Color;
 
 namespace Visualization;
 
-public class Renderer
+public class Renderer(SimulationState state)
 {
-    private readonly SimulationState _state;
+    private const int CubeSideLen = 10;
+    private const int DbRad = 50;
 
     private Camera3D _camera = new()
     {
@@ -16,8 +17,6 @@ public class Renderer
         FovY = 45,
         Projection = CameraProjection.Perspective
     };
-
-    public Renderer(SimulationState state) => _state = state;
 
     public void Initialize()
     {
@@ -47,7 +46,7 @@ public class Renderer
 
         _camera.Position += cameraMovement;
         _camera.Target += cameraMovement;
-        
+
         // rotation
         float rotationSpeed = 0.025f;
         Vector3 direction = _camera.Target - _camera.Position;
@@ -57,14 +56,17 @@ public class Renderer
         {
             direction = Vector3.Transform(direction, Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, -rotationSpeed));
         }
+
         if (Raylib.IsKeyDown(KeyboardKey.Left))
         {
             direction = Vector3.Transform(direction, Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, rotationSpeed));
         }
+
         if (Raylib.IsKeyDown(KeyboardKey.Up))
         {
             direction = Vector3.Transform(direction, Matrix4x4.CreateFromAxisAngle(directionRight, rotationSpeed));
         }
+
         if (Raylib.IsKeyDown(KeyboardKey.Down))
         {
             direction = Vector3.Transform(direction, Matrix4x4.CreateFromAxisAngle(directionRight, -rotationSpeed));
@@ -76,24 +78,32 @@ public class Renderer
     private void DrawFrame()
     {
         Raylib.BeginDrawing();
-        Raylib.ClearBackground(Color.SkyBlue);
+        Raylib.ClearBackground(SkyBlue);
 
         // 3D rendering
         Raylib.BeginMode3D(_camera);
-        Raylib.DrawPlane(Vector3.Zero, new Vector2(1000, 1000), Color.Green);
-        Raylib.DrawSphere(Vector3.Zero, 30, Color.DarkGray);
+        Raylib.DrawPlane(Vector3.Zero, new Vector2(1000, 1000), Green);
 
-        foreach (var entity in _state.Entities)
+        foreach (var entity in state.Entities)
         {
-            Raylib.DrawCube(entity.Position, 10, 10, 10, entity.CurrentColor);
+            Raylib.DrawCube(entity.Position, CubeSideLen, CubeSideLen, CubeSideLen,
+                entity.Type == EntityType.Reader ? Red : Blue);
+            Raylib.DrawCubeWires(entity.Position, CubeSideLen, CubeSideLen, CubeSideLen, entity.CurrentColor);
         }
-        Raylib.EndMode3D();
 
-        // 2D overlay (MUST come after EndMode3D)
-        foreach (var entity in _state.Entities)
+        // central db
+        Raylib.BeginBlendMode(BlendMode.Alpha);
+        Raylib.DrawSphere(Vector3.Zero, DbRad, new Color(0, 0, 0, 100));
+        Raylib.DrawSphereWires(Vector3.Zero, DbRad, 32, 32, Black);
+        Raylib.EndBlendMode();
+
+        Raylib.EndMode3D();
+        
+        foreach (var entity in state.Entities)
         {
             DrawEntityLabel(entity);
         }
+
         DrawHud();
 
         Raylib.EndDrawing();
@@ -137,19 +147,19 @@ public class Renderer
             Math.Clamp(textX, 0, screenWidth - textSize),
             Math.Clamp(textY + 5, 0, screenHeight - 20),
             20,
-            Color.White
+            White
         );
     }
 
     private void DrawHud()
     {
-        var statDict = _state.Entities
+        var statDict = state.Entities
             .GroupBy(e => e.Status)
             .ToDictionary(g => g.Key, g => g.Count());
 
         var statsText = string.Join('\n', statDict.Select(pair => $"{pair.Key}: {pair.Value}"));
 
-        Raylib.DrawText($"Pos: {_camera.Position}", 10, 10, 20, Color.Black);
-        Raylib.DrawText(statsText, 10, 30, 20, Color.Black);
+        Raylib.DrawText($"Pos: {_camera.Position}", 10, 10, 20, Black);
+        Raylib.DrawText(statsText, 10, 30, 20, Black);
     }
 }

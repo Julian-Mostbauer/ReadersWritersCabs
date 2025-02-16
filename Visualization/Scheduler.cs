@@ -3,16 +3,14 @@ using Raylib_cs;
 
 namespace Visualization;
 
-public class Scheduler
+public class Scheduler(SimulationState state)
 {
     private readonly SemaphoreSlim _mutex = new(1, 1);
     private readonly SemaphoreSlim _db = new(1, 1);
     private readonly SemaphoreSlim _writerQueue = new(1, 1);
-    private readonly SimulationState _state;
     private readonly Random _random = new();
     private bool _running = true;
-
-    public Scheduler(SimulationState state) => _state = state;
+    private static readonly Vector3 DatabasePosition = new(0, 10, 0);
 
     public void Start(int readers, int writers)
     {
@@ -30,13 +28,14 @@ public class Scheduler
             Type = type,
             Position = new Vector3(
                 (float)(_random.NextDouble() * 1000 - 500),
-                0,
+                10,
                 (float)(_random.NextDouble() * 1000 - 500)
             ),
+            TargetPosition = DatabasePosition,
             CurrentColor = type == EntityType.Reader ? Color.Red : Color.Blue
         };
 
-        _state.Entities.Add(entity);
+        state.Entities.Add(entity);
         new Thread(() => RunEntityLifecycle(entity)).Start();
     }
 
@@ -53,48 +52,75 @@ public class Scheduler
 
     private void RunReaderLogic(Entity entity)
     {
-        // Thinking phase
         UpdateEntityState(entity, Color.White, "Thinking");
         Thread.Sleep(_random.Next(500, 1000));
 
-        // Request access
+        entity.Moving = true;
+        MoveEntity(entity, DatabasePosition);
+        entity.Moving = false;
+
         UpdateEntityState(entity, Color.Yellow, "Waiting");
         _writerQueue.Wait();
         _mutex.Wait();
-        _state.ReaderCount++;
-        if (_state.ReaderCount == 1) _db.Wait();
+        state.ReaderCount++;
+        if (state.ReaderCount == 1) _db.Wait();
         _mutex.Release();
         _writerQueue.Release();
 
-        // Access database
         UpdateEntityState(entity, Color.Purple, "Reading");
         Thread.Sleep(_random.Next(800, 1400));
 
-        // Release access
         _mutex.Wait();
-        _state.ReaderCount--;
-        if (_state.ReaderCount == 0) _db.Release();
+        state.ReaderCount--;
+        if (state.ReaderCount == 0) _db.Release();
         _mutex.Release();
+
+        entity.Moving = true;
+        MoveEntity(entity, GetRandomPosition());
+        entity.Moving = false;
     }
 
     private void RunWriterLogic(Entity entity)
     {
-        // Thinking phase
         UpdateEntityState(entity, Color.White, "Thinking");
         Thread.Sleep(_random.Next(600, 1500));
 
-        // Request access
+        entity.Moving = true;
+        MoveEntity(entity, DatabasePosition);
+        entity.Moving = false;
+
         UpdateEntityState(entity, Color.Yellow, "Waiting");
         _writerQueue.Wait();
         _db.Wait();
 
-        // Access database
         UpdateEntityState(entity, Color.Purple, "Writing");
         Thread.Sleep(_random.Next(400, 800));
 
-        // Release access
         _db.Release();
         _writerQueue.Release();
+
+        entity.Moving = true;
+        MoveEntity(entity, GetRandomPosition());
+        entity.Moving = false;
+    }
+
+    private void MoveEntity(Entity entity, Vector3 target)
+    {
+        entity.TargetPosition = target;
+        while (Vector3.Distance(entity.Position, target) > 1f)
+        {
+            entity.Position = Vector3.Lerp(entity.Position, target, 0.1f);
+            Thread.Sleep(16);
+        }
+    }
+
+    private Vector3 GetRandomPosition()
+    {
+        return new Vector3(
+            (float)(_random.NextDouble() * 1000 - 500 + 50),
+            10,
+            (float)(_random.NextDouble() * 1000 - 500 + 50)
+        );
     }
 
     private void UpdateEntityState(Entity entity, Color color, string status)
