@@ -80,13 +80,11 @@ public class Scheduler(SimulationState state)
             _db.Release(); // Unblock writers if last reader
         _mutex.Release();
 
+        UpdateEntityState(entity, Color.White, "Thinking"); // signal end of access before moving
         // Move away after releasing access
         entity.Moving = true;
         MoveEntity(entity, GetRandomPosition());
         entity.Moving = false;
-        
-        // Wait a bit before starting again
-        Thread.Sleep(_random.Next(500, 1000));
     }
 
     private void RunWriterLogic(Entity entity)
@@ -105,6 +103,8 @@ public class Scheduler(SimulationState state)
 
         UpdateEntityState(entity, Color.Purple, "Writing");
         Thread.Sleep(_random.Next(400, 800));
+
+        UpdateEntityState(entity, Color.White, "Thinking"); // signal end of access before moving
 
         // Move away BEFORE releasing semaphores
         entity.Moving = true;
