@@ -86,8 +86,12 @@ public class Renderer(SimulationState state)
 
         foreach (var entity in state.Entities)
         {
-            Raylib.DrawCube(entity.Position, CubeSideLen, CubeSideLen, CubeSideLen,
-                entity.Type == EntityType.Reader ? Red : Blue);
+            var color = entity.Type == EntityType.Reader ? Red : Blue;
+            var isActive = entity.Status is "Reading" or "Writing";
+    
+            // Highlight active entities
+            var cubeColor = isActive ? Color.Yellow : color;
+            Raylib.DrawCube(entity.Position, CubeSideLen, CubeSideLen, CubeSideLen, cubeColor);
             Raylib.DrawCubeWires(entity.Position, CubeSideLen, CubeSideLen, CubeSideLen, entity.CurrentColor);
         }
 

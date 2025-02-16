@@ -16,7 +16,7 @@ public class Scheduler(SimulationState state)
     {
         for (var i = 0; i < readers; i++)
             CreateEntity(EntityType.Reader);
-        
+
         for (var i = 0; i < writers; i++)
             CreateEntity(EntityType.Writer);
     }
@@ -55,29 +55,38 @@ public class Scheduler(SimulationState state)
         UpdateEntityState(entity, Color.White, "Thinking");
         Thread.Sleep(_random.Next(500, 1000));
 
-        entity.Moving = true;
-        MoveEntity(entity, DatabasePosition);
-        entity.Moving = false;
-
+        // Move to the database *after* acquiring access
         UpdateEntityState(entity, Color.Yellow, "Waiting");
-        _writerQueue.Wait();
+        _writerQueue.Wait(); // Ensures writers get priority
         _mutex.Wait();
         state.ReaderCount++;
-        if (state.ReaderCount == 1) _db.Wait();
+        if (state.ReaderCount == 1)
+            _db.Wait(); // Block writers if first reader
         _mutex.Release();
-        _writerQueue.Release();
+        _writerQueue.Release(); // Release early to allow other readers
+
+        // Now move to the database position
+        entity.Moving = true;
+        MoveEntity(entity, DatabasePosition + GetRandomPosition() / 20);
+        entity.Moving = false;
 
         UpdateEntityState(entity, Color.Purple, "Reading");
-        Thread.Sleep(_random.Next(800, 1400));
+        Thread.Sleep(_random.Next(400, 1000));
 
+        // Exit the database
         _mutex.Wait();
         state.ReaderCount--;
-        if (state.ReaderCount == 0) _db.Release();
+        if (state.ReaderCount == 0)
+            _db.Release(); // Unblock writers if last reader
         _mutex.Release();
 
+        // Move away after releasing access
         entity.Moving = true;
         MoveEntity(entity, GetRandomPosition());
         entity.Moving = false;
+        
+        // Wait a bit before starting again
+        Thread.Sleep(_random.Next(500, 1000));
     }
 
     private void RunWriterLogic(Entity entity)
@@ -85,23 +94,25 @@ public class Scheduler(SimulationState state)
         UpdateEntityState(entity, Color.White, "Thinking");
         Thread.Sleep(_random.Next(600, 1500));
 
-        entity.Moving = true;
-        MoveEntity(entity, DatabasePosition);
-        entity.Moving = false;
-
         UpdateEntityState(entity, Color.Yellow, "Waiting");
         _writerQueue.Wait();
         _db.Wait();
 
+        // Move to DB AFTER acquiring access
+        entity.Moving = true;
+        MoveEntity(entity, DatabasePosition + GetRandomPosition() / 20);
+        entity.Moving = false;
+
         UpdateEntityState(entity, Color.Purple, "Writing");
         Thread.Sleep(_random.Next(400, 800));
 
-        _db.Release();
-        _writerQueue.Release();
-
+        // Move away BEFORE releasing semaphores
         entity.Moving = true;
         MoveEntity(entity, GetRandomPosition());
         entity.Moving = false;
+
+        _db.Release();
+        _writerQueue.Release();
     }
 
     private void MoveEntity(Entity entity, Vector3 target)
@@ -116,11 +127,17 @@ public class Scheduler(SimulationState state)
 
     private Vector3 GetRandomPosition()
     {
-        return new Vector3(
-            (float)(_random.NextDouble() * 1000 - 500 + 50),
-            10,
-            (float)(_random.NextDouble() * 1000 - 500 + 50)
-        );
+        Vector3 pos;
+        do
+        {
+            pos = new Vector3(
+                (float)(_random.NextDouble() * 1000 - 500),
+                5,
+                (float)(_random.NextDouble() * 1000 - 500)
+            );
+        } while (Vector3.Distance(pos with { Y = 0 }, Vector3.Zero) < 150);
+
+        return pos;
     }
 
     private void UpdateEntityState(Entity entity, Color color, string status)
