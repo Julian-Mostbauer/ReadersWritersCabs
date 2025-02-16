@@ -1,5 +1,4 @@
 using System.Numerics;
-using System.Threading;
 using Raylib_cs;
 
 namespace Visualization;
@@ -68,7 +67,7 @@ public class Scheduler
         _writerQueue.Release();
 
         // Access database
-        UpdateEntityState(entity, Color.Green, "Reading");
+        UpdateEntityState(entity, Color.Purple, "Reading");
         Thread.Sleep(_random.Next(800, 1400));
 
         // Release access
@@ -90,7 +89,7 @@ public class Scheduler
         _db.Wait();
 
         // Access database
-        UpdateEntityState(entity, Color.Green, "Writing");
+        UpdateEntityState(entity, Color.Purple, "Writing");
         Thread.Sleep(_random.Next(400, 800));
 
         // Release access
