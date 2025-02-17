@@ -164,8 +164,7 @@ public class Renderer(SimulationState state)
         var screenWidth = Raylib.GetScreenWidth();
         var screenHeight = Raylib.GetScreenHeight();
 
-        screenPos.X = Math.Clamp(screenPos.X, 0, screenWidth);
-        screenPos.Y = Math.Clamp(screenPos.Y, 0, screenHeight);
+        if (screenPos.X < 0 || screenPos.X > screenWidth || screenPos.Y < 0 || screenPos.Y > screenHeight) return;
 
         // Draw a background rectangle for better readability
         var textSize = Raylib.MeasureText(entity.Status, 20);
