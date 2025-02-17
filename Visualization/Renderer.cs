@@ -88,7 +88,7 @@ public class Renderer(SimulationState state)
         {
             var color = entity.Type == EntityType.Reader ? Red : Blue;
             var isActive = entity.Status is "Reading" or "Writing";
-    
+
             // Highlight active entities
             var cubeColor = isActive ? Color.Yellow : color;
             Raylib.DrawCube(entity.Position, CubeSideLen, CubeSideLen, CubeSideLen, cubeColor);
@@ -102,15 +102,54 @@ public class Renderer(SimulationState state)
         Raylib.EndBlendMode();
 
         Raylib.EndMode3D();
-        
+
         foreach (var entity in state.Entities)
         {
             DrawEntityLabel(entity);
         }
-
+        
+        DrawDbLabel();
+        
         DrawHud();
-
+        
         Raylib.EndDrawing();
+    }
+
+    private void DrawDbLabel()
+    {
+        var screenPos = Raylib.GetWorldToScreen(new Vector3(0, DbRad + 10, 0), _camera);
+
+        // Cut off rendering if the entity is off-screen
+        var screenWidth = Raylib.GetScreenWidth();
+        var screenHeight = Raylib.GetScreenHeight();
+
+        if (screenPos.X < 0 || screenPos.X > screenWidth || screenPos.Y < 0 || screenPos.Y > screenHeight) return;
+
+        // Draw a background rectangle for better readability
+        var textSize = Raylib.MeasureText("Database", 40);
+        var textX = (int)screenPos.X - textSize / 2;
+        var textY = (int)screenPos.Y - 15;
+        
+        // Ensure the background rectangle stays within the screen bounds
+        var rectX = Math.Clamp(textX - 5, 0, screenWidth - (textSize + 10));
+        var rectY = Math.Clamp(textY, 0, screenHeight - 30);
+
+        Raylib.DrawRectangle(
+            rectX,
+            rectY,
+            textSize + 10,
+            45,
+            new Color(0, 0, 0, 128) // Semi-transparent black background
+        );
+
+        // Draw the status text
+        Raylib.DrawText(
+            "Database",
+            Math.Clamp(textX, 0, screenWidth - textSize),
+            Math.Clamp(textY + 5, 0, screenHeight - 20),
+            40,
+            White
+        );
     }
 
     private void DrawEntityLabel(Entity entity)

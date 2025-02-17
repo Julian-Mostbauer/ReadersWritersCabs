@@ -135,7 +135,7 @@ public class Scheduler(SimulationState state)
                 5,
                 (float)(_random.NextDouble() * 1000 - 500)
             );
-        } while (Vector3.Distance(pos with { Y = 0 }, Vector3.Zero) < 150);
+        } while (Vector3.Distance(pos with { Y = 0 }, Vector3.Zero) < 100);
 
         return pos;
     }
