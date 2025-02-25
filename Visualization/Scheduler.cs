@@ -142,8 +142,8 @@ public class Scheduler(SimulationState state)
 
     private void UpdateEntityState(Entity entity, Color color, string status)
     {
-        entity.CurrentColor = color;
         entity.Status = status;
+        entity.SmoothUpdateColor(color);
     }
 
     public void Stop() => _running = false;

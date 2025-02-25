@@ -90,7 +90,7 @@ public class Renderer(SimulationState state)
             var isActive = entity.Status is "Reading" or "Writing";
 
             // Highlight active entities
-            var cubeColor = isActive ? Color.Yellow : color;
+            var cubeColor = isActive ? Yellow : color;
             Raylib.DrawCube(entity.Position, CubeSideLen, CubeSideLen, CubeSideLen, cubeColor);
             Raylib.DrawCubeWires(entity.Position, CubeSideLen, CubeSideLen, CubeSideLen, entity.CurrentColor);
         }
