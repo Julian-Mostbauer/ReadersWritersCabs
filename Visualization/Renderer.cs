@@ -20,7 +20,8 @@ public class Renderer(SimulationState state)
 
     public void Initialize()
     {
-        Raylib.InitWindow(1600, 1200, "Readers-Writers Visualization");
+        Raylib.SetConfigFlags( ConfigFlags.ResizableWindow);
+        Raylib.InitWindow(1400, 1000, "Readers-Writers Visualization");
         Raylib.SetTargetFPS(60);
     }
 
