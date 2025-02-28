@@ -30,11 +30,7 @@ public class Scheduler(SimulationState state)
         var entity = new Entity
         {
             Type = type,
-            Position = new Vector3(
-                (float)(_random.NextDouble() * 1000 - 500),
-                10,
-                (float)(_random.NextDouble() * 1000 - 500)
-            ),
+            Position = GetRandomPosition(),
             TargetPosition = DatabasePosition,
             CurrentColor = type == EntityType.Reader ? Color.Red : Color.Blue
         };
@@ -139,7 +135,7 @@ public class Scheduler(SimulationState state)
                 5,
                 (float)(_random.NextDouble() * 1000 - 500)
             );
-        } while (Vector3.Distance(pos with { Y = 0 }, Vector3.Zero) < 100);
+        } while (Vector3.Distance(pos with { Y = 0 }, Vector3.Zero) < 70);
 
         return pos;
     }
