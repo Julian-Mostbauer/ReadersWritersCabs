@@ -11,6 +11,10 @@ public class Scheduler(SimulationState state)
     private readonly Random _random = new();
     private bool _running = true;
     private static readonly Vector3 DatabasePosition = new(0, 10, 0);
+    private readonly SpeedControl _speedControl = new();
+
+    private int RandomDeviation(int average, float percent = 0.5f) =>
+        (int)(average * (1 + (float)(_random.NextDouble() * 2 - 1) * percent));
 
     public void Start(int readers, int writers)
     {
@@ -53,7 +57,7 @@ public class Scheduler(SimulationState state)
     private void RunReaderLogic(Entity entity)
     {
         UpdateEntityState(entity, Color.White, "Thinking");
-        Thread.Sleep(_random.Next(500, 1000));
+        Thread.Sleep(RandomDeviation(_speedControl.AverageReaderThinkTime));
 
         // Move to the database *after* acquiring access
         UpdateEntityState(entity, Color.Yellow, "Waiting");
@@ -71,7 +75,7 @@ public class Scheduler(SimulationState state)
         entity.Moving = false;
 
         UpdateEntityState(entity, Color.Purple, "Reading");
-        Thread.Sleep(_random.Next(400, 1000));
+        Thread.Sleep(RandomDeviation(_speedControl.AverageReaderReadTime));
 
         // Exit the database
         _mutex.Wait();
@@ -90,7 +94,7 @@ public class Scheduler(SimulationState state)
     private void RunWriterLogic(Entity entity)
     {
         UpdateEntityState(entity, Color.White, "Thinking");
-        Thread.Sleep(_random.Next(600, 1500));
+        Thread.Sleep(RandomDeviation(_speedControl.AverageWriterThinkTime));
 
         UpdateEntityState(entity, Color.Yellow, "Waiting");
         _writerQueue.Wait();
@@ -102,7 +106,7 @@ public class Scheduler(SimulationState state)
         entity.Moving = false;
 
         UpdateEntityState(entity, Color.Purple, "Writing");
-        Thread.Sleep(_random.Next(400, 800));
+        Thread.Sleep(RandomDeviation(_speedControl.AverageWriterWriteTime));
 
         UpdateEntityState(entity, Color.White, "Thinking"); // signal end of access before moving
 
@@ -115,7 +119,7 @@ public class Scheduler(SimulationState state)
         _writerQueue.Release();
     }
 
-    private void MoveEntity(Entity entity, Vector3 target)
+    private static void MoveEntity(Entity entity, Vector3 target)
     {
         entity.TargetPosition = target;
         while (Vector3.Distance(entity.Position, target) > 1f)
@@ -140,11 +144,57 @@ public class Scheduler(SimulationState state)
         return pos;
     }
 
-    private void UpdateEntityState(Entity entity, Color color, string status)
+    private static void UpdateEntityState(Entity entity, Color color, string status)
     {
         entity.Status = status;
         entity.SmoothUpdateColor(color);
     }
 
     public void Stop() => _running = false;
+
+    public void SpeedUp() => _speedControl.SpeedUp();
+    public void SlowDown() => _speedControl.SlowDown();
+    public void ResetSpeed() => _speedControl.ResetSpeed();
+
+    private class SpeedControl
+    {
+        private const float DefaultAverageReaderThinkTime = 750f;
+        private const float DefaultAverageReaderReadTime = 700f;
+        private const float DefaultAverageWriterThinkTime = 1200f;
+        private const float DefaultAverageWriterWriteTime = 600f;
+
+        private float _averageReaderThinkTime = DefaultAverageReaderThinkTime;
+        private float _averageReaderReadTime = DefaultAverageReaderReadTime;
+        private float _averageWriterThinkTime = DefaultAverageWriterThinkTime;
+        private float _averageWriterWriteTime = DefaultAverageWriterWriteTime;
+
+        public int AverageReaderThinkTime => (int)_averageReaderThinkTime;
+        public int AverageReaderReadTime => (int)_averageReaderReadTime;
+        public int AverageWriterThinkTime => (int)_averageWriterThinkTime;
+        public int AverageWriterWriteTime => (int)_averageWriterWriteTime;
+
+        public void SpeedUp()
+        {
+            _averageReaderReadTime /= 1.2f;
+            _averageReaderThinkTime /= 1.2f;
+            _averageWriterWriteTime /= 1.2f;
+            _averageWriterThinkTime /= 1.2f;
+        }
+
+        public void SlowDown()
+        {
+            _averageReaderReadTime *= 1.2f;
+            _averageReaderThinkTime *= 1.2f;
+            _averageWriterWriteTime *= 1.2f;
+            _averageWriterThinkTime *= 1.2f;
+        }
+
+        public void ResetSpeed()
+        {
+            _averageReaderReadTime = DefaultAverageReaderReadTime;
+            _averageReaderThinkTime = DefaultAverageReaderThinkTime;
+            _averageWriterWriteTime = DefaultAverageWriterWriteTime;
+            _averageWriterThinkTime = DefaultAverageWriterThinkTime;
+        }
+    }
 }

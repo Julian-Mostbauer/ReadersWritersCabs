@@ -48,14 +48,6 @@ public class Entity
 
 internal static class Helper
 {
-    public static bool SameColor(this Color a, Color b, int tolerance = 1)
-    {
-        return Math.Abs(a.R - b.R) <= tolerance &&
-               Math.Abs(a.G - b.G) <= tolerance &&
-               Math.Abs(a.B - b.B) <= tolerance &&
-               Math.Abs(a.A - b.A) <= tolerance;
-    }
-
     public static float Lerp(float a, float b, float t)
     {
         return a + (b - a) * t;
